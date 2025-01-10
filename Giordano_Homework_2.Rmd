@@ -1,0 +1,342 @@
+---
+title: "Homework 2: NBA Salaries & NYC Flights"
+author: "Tasianna Giordano"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Homework 2: NBA Salaries & NYC Flights
+
+## Overview:
+
+In this homework you will use R to perform Exploratory Data Analysis (EDA) on two datasets.
+
+This homework assignment will cover the topics found in the following chapters of the book.
+
+#### **Textbook Chapters & Topics**
+
+-   **Ch. 7:** Data Import (Reading CSV files into R)
+
+-   **Ch. 3:** Data Transformation (filter, summarize, arrange, group, etc..)
+
+-   **Ch. 13:** Numbers (min, max, avg, etc..)
+
+-   **Ch. 1:** Data visualization (creating plots)
+
+Reading these chapters and completing the tutorials for them will provide you with everything you need to know to successfully complete the assignment.
+
+------------------------------------------------------------------------
+
+> #### **Code & Submission Requirements**
+>
+> -   You must include comments which describe why/how your code works
+> -   You must ensure that your code can run and produce the expected output before submission. Your code and output are your solutions. If your code does not run, then you have not provided a solution.
+> -   Your submission must use the HW template and have code within the code chunks provided. [**Do not change the template.**]{.underline}
+>     -   If you'd like you may separate your code for an exercise into multiple chunks. Make sure to include the chunk label for that exercise i.e. **`{r HW2-1}`**
+> -   You must submit (via Canvas):
+>     -   Your Rmd file with your solutions. Name the file with the format of ***"yourLASTNAME_HW2.Rmd"***
+>
+>         [(Make sure to add your name in the YAML header and to hit run all before saving and submitting).]{.underline}
+
+------------------------------------------------------------------------
+
+## Datasets:
+
+-   Dataset 1: a dataset with 2017-2018 NBA salaries. This dataset comes from the website: <https://www.kaggle.com/datasets/aishjun/nba-salaries-prediction-in-20172018-season>
+-   Dataset 2: nycflights13 This data frame contains all flights that departed from New York City in 2013
+
+------------------------------------------------------------------------
+
+## NBA Salaries:
+
+Load the NBA Salaries dataset into a variable called **`Salaries`** to answer the questions for this section.
+
+```{r}
+
+Salaries <- read.csv("2017-18_NBA_salary.csv")
+
+```
+
+### Question 1
+
+Who is the highest paid NBA player and what is his team, draft number, minutes played (MP), and true shooting percentage (TS%)?
+
+```{r HW2-1}
+
+Salaries[which.max(Salaries$Salary), ]
+# Stephen Curry, GSW Team, 7, 1631, 0.675
+
+```
+
+### Question 2
+
+What is the minimum, maximum, and average salaries of NBA players?
+
+```{r HW2-2}
+
+Salaries[which.max(Salaries$Salary), ]
+# max is $34682550
+
+Salaries[which.min(Salaries$Salary), ]
+# min is 46080
+
+mean(Salaries$Salary, na.rm = TRUE)
+# average is 6636507
+
+```
+
+### Question 3
+
+What is the minimum, maximum, and average ages of all the NBA players from USA?
+
+```{r HW2-3}
+mean(Salaries$Age[Salaries$NBA_Country == "USA"], na.rm = TRUE)
+# average is 26.3262
+Salaries[Salaries$NBA_Country == "USA", ][which.min(Salaries$Age[Salaries$NBA_Country == "USA"]), ]
+# min is 19 
+Salaries[Salaries$NBA_Country == "USA", ][which.max(Salaries$Age[Salaries$NBA_Country == "USA"]), ]
+
+# max is 41
+
+
+```
+
+### Question 4
+
+What is the minimum, maximum, and average ages of all the NBA non-USA players?
+
+```{r HW2-4}
+library(dplyr)
+Salaries |>
+filter(NBA_Country != "USA") |>
+summarise(
+min_age = min(Age, na.rm = TRUE),
+max_age = max(Age, na.rm = TRUE),
+avg_age = mean(Age, na.rm = TRUE)
+)
+  #min_age, max_age,  avg_age
+#      19,      40, 26.05405
+
+```
+
+### Question 5
+
+Choose a state that has more than one NBA team. Print a table that compares the average age and salaries of the teams in this chosen state in tabular form as follows:
+
+| Teams     | Average Age | Average Salary |
+|-----------|-------------|----------------|
+| Team name | xxx         | xxx            |
+| ...       | xxx         | xxx            |
+| ...       | xxx         | xxx            |
+
+```{r HW2-5}
+
+Salaries |>
+filter(Tm %in% c("LAL", "GSW", "SAC", "LAC")) |>
+group_by(Tm) |>
+summarise(
+Average_Age = mean(Age, na.rm = TRUE),
+Average_Salary = mean(Salary, na.rm = TRUE)
+)
+
+#  Tm    Average_Age Average_Salary
+#  <chr>       <dbl>          <dbl>
+# 1 GSW          28.2       8540607.
+# 2 LAC          26.8       7030745.
+# 3 LAL          24.4       5509006.
+# 4 SAC          26.2       5443672.
+
+```
+
+### Question 6
+
+How many different countries are represented by NBA players?
+
+```{r HW2-6}
+
+num_countries <- Salaries |>
+summarise(total_countries = n_distinct(NBA_Country))
+print(num_countries)
+#  total_countries
+#              44
+
+```
+
+### Question 7
+
+Print a list of all the countries represented by NBA players and the number of players from each country.
+
+```{r HW2-7}
+
+Salaries |>
+group_by(NBA_Country) |>
+summarise(num_players = n()) |>
+arrange(desc(num_players))
+
+#    NBA_Country num_players
+#    <chr>             <int>
+#  1 USA                 374
+#  2 Canada               12
+#  3 France                9
+#  4 Australia             8
+#  5 Spain                 7
+#  6 Croatia               6
+#  7 Brazil                5
+#  8 Germany               5
+#  9 Serbia                5
+# 10 Turkey                5
+
+```
+
+### Question 8
+
+Generate a horizontal **geom-bar plot** of countries and number of NBA players.
+
+A horizontal geom-bar plot looks like:
+
+![](https://cam-portfolio-blog.netlify.app/horizontal-geom-bar.png)
+
+```{r HW2-8}
+library(ggplot2)
+Salaries |>
+(\(df) aggregate(Player ~ NBA_Country, df, length))() |>
+ggplot(aes(x = Player, y = reorder(NBA_Country, Player))) +
+geom_bar(stat = "identity") +
+labs(x = "Number of Players", 
+     y = "Country", title = "Number of NBA Players by Country") +
+theme_minimal()
+
+```
+
+### Question 9
+
+Print a list of all the NBA teams and the average player salary of each team that year.
+
+```{r HW2-9}
+Salaries |> 
+group_by(Tm)|>
+  summarise(avg_Salary = mean(Salary, na.rm = TRUE)) |> 
+  arrange(desc(avg_Salary))|>
+  print()
+
+```
+
+### Question 10
+
+Print a list of all the NBA teams and the average true shooting percentage (TS%) of each team that year.
+
+```{r HW2-10}
+
+library(dplyr)
+
+true_shoot <- Salaries |>
+group_by(Tm) |>
+summarise(avg_TS. = mean(TS., na.rm = TRUE)) |>
+arrange(desc(avg_TS.)) |>
+print(true_shoot)
+
+#  Tm    avg_TS.
+#    <chr>   <dbl>
+#  1 GSW     0.604
+#  2 CLE     0.603
+#  3 UTA     0.602
+#  4 TOR     0.588
+#  5 MIL     0.569
+#  6 DEN     0.558
+#  7 BRK     0.557
+#  8 HOU     0.556
+#  9 LAC     0.555
+# 10 PHI     0.551
+
+```
+
+### Question 11
+
+Generate a **geom-smooth** plot of the average salary vs TS% for the NBA teams.
+
+A geom-smooth plot looks like:
+
+![](https://cam-portfolio-blog.netlify.app/geom-smooth.png)
+
+```{r HW2-11}
+
+
+team_stats <- Salaries |>
+     group_by(Tm) |>
+     summarise(avg_Salary = mean(Salary, na.rm = TRUE),avg_TS = mean(TS., na.rm = TRUE))
+
+ggplot(team_stats, aes(x = avg_TS, y = avg_Salary)) +
+geom_smooth()  + labs(x = "Average True Shooting Percentage (TS%)",y = "Average Salary",title = "Average Salary vs True Shooting Percentage (TS%) for NBA Teams") + theme_minimal()
+
+```
+
+## nycflights13:
+
+Load the nycflights13 dataset into a variable called **`flights`** to answer the questions for this section.
+
+```{r}
+
+library(nycflights13)
+flights_data <- flights
+
+```
+
+### Question 12
+
+How many flights went from New York to West Palm Beach (PBI) in 2013?
+
+```{r HW2-12}
+
+num_flights_to_PBI <- flights |>
+filter(dest == "PBI", year== 2013)|>
+count()
+num_flights_to_PBI
+
+# 6554
+```
+
+### Question 13
+
+How many flights went from New York (JFK) to West Palm Beach (PBI) in 2013?
+
+```{r HW2-13}
+
+to_PBI_from_JFK <- flights |> 
+filter(dest=="PBI", origin == "JFK", year == 2013) |>
+count()
+to_PBI_from_JFK
+
+# 1739
+
+```
+
+### Question 14
+
+How many flights went from New York (LGA) to West Palm Beach (PBI) in 2013?
+
+```{r HW2-14}
+
+to_PBI_from_LGA <- flights |> filter(dest=="PBI", origin == "LGA", year == 2013) |> 
+  count()
+to_PBI_from_LGA
+
+# 2464
+
+```
+
+### Question 15
+
+How many flights went from New York (EWR) to West Palm Beach (PBI) in 2013?
+
+```{r H2-15}
+
+to_PBI_from_EWR <- flights |> 
+filter(dest=="PBI", origin == "EWR", year == 2013) |> 
+count()
+to_PBI_from_EWR
+
+# 2351
+
+```
